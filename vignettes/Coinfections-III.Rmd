@@ -1,0 +1,20 @@
+---
+title: "Coinfections-III"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Coinfections-III}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(StaphAureus)
+vignette('EDA-III', package='StaphAureus')
+```

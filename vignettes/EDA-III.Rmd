@@ -73,6 +73,7 @@ select distinct pt.subject_id from patients pt
 left join cneg n on n.subject_id = pt.subject_id
 left join cpos p on n.subject_id = pt.subject_id
 ```
+
 ```{sql cohort_sql, eval = F}
 create materialized view cohort as
 select pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num 
@@ -85,27 +86,9 @@ where mb.interpretation is not null
   )
 group by pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num
 ```
-```{r cohort, include=F}
-# # cohort <- bind_rows(
-# #   read.csv(
-# #     system.file('extdata/microbio_coagn.csv', package = 'MIMICMicrobiology')
-# #   ),
-# #   read.csv(
-# #     system.file('extdata/microbio_coagp.csv', package = 'MIMICMicrobiology')
-# #   )
-# # )
 
-# library(StaphAureus)
-# cohort <- read.csv(
-#   system.file('extdata/cohort.csv', package = 'StaphAureus'),
-#   stringsAsFactors = TRUE
-# )
-# usethis::use_data(cohort, overwrite=T)
-```
 ```{r cohort_iso, echo=T, eval=T, fig.width=5}
 data(cohort)
-
-cohort.N <<- length(unique(cohort$subject_id))
 
 (
   cohort.hist.isolates <<- {

@@ -19,3 +19,7 @@ Imports:
     grid,
     cowplot,
     gridExtra
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
