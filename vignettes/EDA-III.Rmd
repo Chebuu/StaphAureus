@@ -32,16 +32,26 @@ library(StaphAureus)
 ```{r internal, eval=T, include=F}
 library(StaphAureus)
 
-library(gt)
-library(dplyr)
-library(ggplot2)
-library(cowplot)
-library(kableExtra)
 # http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
 # https://blog.rstudio.com/2020/04/08/great-looking-tables-gt-0-2/
 # https://cran.r-project.org/web/packages/gridExtra/vignettes/tableGrob.html
+
+library(gt)
 library(grid)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
 library(gridExtra)
+library(kableExtra)
+
+# usethis::use_package('gt')
+# usethis::use_package('grid')
+# usethis::use_package('dplyr')
+# usethis::use_package('ggplot2')
+# usethis::use_package('cowplot')
+# usethis::use_package('gridExtra')
+# usethis::use_package('kableExtra')
+
 ```
 
 #### Cohort COAG(+)/COAG(-)
