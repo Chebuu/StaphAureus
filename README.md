@@ -523,20 +523,3 @@ NOTE: All the MRSA screens (and a few other `itemid`s) have null values.
 `222577 16839 168517 "2102-09-06 00:00:00" "2102-09-06 09:49:00" 70091
 "MRSA SCREEN" 80023 "STAPH AUREUS COAG +" 1 90016 "OXACILLIN" "R"`
 
-``` sql
-with cpos as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%+%'
-),
-
-cneg as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%NEG%'
-)
-
-select distinct on (dxm.subject_id) dxm.* from microbiologyevents dxm
-right join cneg n on n.subject_id = dxm.subject_id
-right join cpos p on n.subject_id = dxm.subject_id
-```
