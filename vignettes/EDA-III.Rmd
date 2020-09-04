@@ -19,22 +19,34 @@ knitr::opts_chunk$set(
 ```{r setup, echo=T, eval=F}
 devtools::install_github('chebuu/StaphAureus')
 library(StaphAureus)
-
-library(dplyr)
-library(ggplot2)
-library(kableExtra)
+## Imports:
+# library(gt)
+# library(grid)
+# library(dplyr)
+# library(ggplot2)
+# library(cowplot)
+# library(gridExtra)
+# library(kableExtra)
 ```
 
 ```{r internal, eval=T, include=F}
 library(StaphAureus)
+
+library(gt)
 library(dplyr)
 library(ggplot2)
+library(cowplot)
 library(kableExtra)
+# http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
+# https://blog.rstudio.com/2020/04/08/great-looking-tables-gt-0-2/
+# https://cran.r-project.org/web/packages/gridExtra/vignettes/tableGrob.html
+library(grid)
+library(gridExtra)
 ```
 
 #### Cohort COAG(+)/COAG(-)
 
-```{sql coagp, eval = F}
+```{sql coag_sql}
 with cpos as (
   select * from microbiologyevents 
   where interpretation is not null 
@@ -49,48 +61,164 @@ cneg as (
 
 select distinct pt.subject_id from patients pt
 left join cneg n on n.subject_id = pt.subject_id
-left join cpos p on n.subject_id = p.subject_id
+left join cpos p on n.subject_id = pt.subject_id
 ```
-
-```{r cohort, echo=T, eval=T, fig.width=5}
-cohort <- bind_rows(
-  read.csv(
-    system.file('extdata/microbio_coagn.csv', package = 'MIMICMicrobiology')
-  ),
-  read.csv(
-    system.file('extdata/microbio_coagp.csv', package = 'MIMICMicrobiology')
+```{sql cohort_sql, eval = F}
+create materialized view cohort as
+select pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num 
+from microbiologyevents mb
+left join patients pt 
+  on mb.subject_id = pt.subject_id
+where mb.interpretation is not null 
+  and mb.org_name ilike any (
+    array [ '%STAPH%+%', '%STAPH%NEG%']
   )
-)
+group by pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num
+```
+```{r cohort, include=F}
+# # cohort <- bind_rows(
+# #   read.csv(
+# #     system.file('extdata/microbio_coagn.csv', package = 'MIMICMicrobiology')
+# #   ),
+# #   read.csv(
+# #     system.file('extdata/microbio_coagp.csv', package = 'MIMICMicrobiology')
+# #   )
+# # )
 
-cohort.n <- length(unique(cohort$subject_id))
+# library(StaphAureus)
+# cohort <- read.csv(
+#   system.file('extdata/cohort.csv', package = 'StaphAureus'),
+#   stringsAsFactors = TRUE
+# )
+# usethis::use_data(cohort, overwrite=T)
+```
+```{r cohort_iso, echo=T, eval=T, fig.width=5}
+data(cohort)
+
+cohort.N <<- length(unique(cohort$subject_id))
 
 (
-  cohort.table <<- cohort %>%
-  distinct_at(
-    vars(subject_id, org_name, isolate_num)
-  ) %>%
-  mutate(
-    org_name = case_when(
-      grepl('NEG', org_name) ~ 'COAG (-)',
-      grepl('+', org_name)   ~ 'COAG (+)'
+  cohort.hist.isolates <<- {
+    cohort.iso.table <<- cohort %>%
+    distinct_at(
+      vars(subject_id, org_name, isolate_num)
+    ) %>%
+    mutate(
+      org_name = case_when(
+        grepl('NEG', org_name) ~ 'COAG (-)',
+        grepl('+', org_name)   ~ 'COAG (+)'
+      )
     )
-  )
-) %>%
-ggplot(aes(x=isolate_num)) +
-  geom_histogram(stat='count') +
-  facet_grid(~org_name) +
-  theme_bw() 
-
-
-```
-```{r cohort_kab, eval=T, echo=F, fig.align='right'}
-
-kable(
-  cohort.table %>% head(6),
-  caption = sprintf('(N=%s)', cohort.n),
-  format = 'pipe', align = 'r'
+  } %>% 
+  ggplot(aes(x=isolate_num)) +
+    geom_histogram(stat='count') +
+    facet_grid(~org_name) +
+    theme_bw() 
 )
+```
 
+```{r cohort_mrt, echo=T, eval=T, fig.width=5}
+(
+  cohort.hist.mortality <- {
+    cohort.mort.table <<- cohort %>%
+    distinct_at(
+      vars(subject_id, org_name, isolate_num)
+    ) %>%
+    mutate(
+      org_name = case_when(
+        grepl('NEG', org_name) ~ 'COAG (-)',
+        grepl('+', org_name)   ~ 'COAG (+)'
+      )
+    )
+  } %>% 
+  ggplot(aes(x=isolate_num)) +
+    geom_histogram(stat='count') +
+    facet_grid(~org_name) +
+    theme_bw() 
+)
+```
+
+```{r cohort_kab, eval=F, echo=F, fig.align='right'}
+# cohort.iso.table -> cohort.table
+# 
+# .displayN <- cohort.table %>% filter(grepl('-', org_name)) %>% head(6)
+# .displayP <- cohort.table %>% filter(grepl('+', org_name)) %>% head(6)
+#   do.call(
+#     plot_grid,
+#     list(
+#       A = gt(.displayN) %>%
+#         fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+#         fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+#         tab_header(
+#           title = md(''),
+#           subtitle = sprintf('(N=%s)', nrow(.displayN))
+#         ) %>%
+#         tab_source_note(md(''))
+#       ,
+#       B = gt(.displayN) %>%
+#         fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+#         fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+#         tab_header(
+#           title = md(''),
+#           subtitle = sprintf('(N=%s)', nrow(.displayP))
+#         ) %>%
+#         tab_source_note(md(''))
+#       ,
+#       labels = c('A', 'B')
+#     ) 
+#   )
+```
+```{r cohort_tab, eval=T, echo=F, fig.align='right'}
+cohort.iso.table -> cohort.table
+
+.displayN <- cohort.table %>% filter(grepl('-', org_name)) 
+gt(.displayN %>% head(6)) %>%
+  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+  tab_header(
+    title = md(''),
+    subtitle = sprintf('(N=%s)', nrow(.displayN))
+  ) %>%
+  tab_source_note(md(''))
+
+.displayP <- cohort.table %>% filter(grepl('+', org_name))
+gt(.displayP %>% head(6)) %>%
+  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+  tab_header(
+    title = md(''),
+    subtitle = sprintf('(N=%s)', nrow(.displayP))
+  ) %>%
+  tab_source_note(md(''))
 ```
 
 NOTE: `308	STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS`
+
+Interpretation levels:
+- "P"
+- "S"
+- "R"
+- "I"
+- "None"
+
+NOTE: All the MRSA screens (and a few other `itemid`s) have null values.
+
+`222577	16839	168517	"2102-09-06 00:00:00"	"2102-09-06 09:49:00"	70091	"MRSA SCREEN"	80023	"STAPH AUREUS COAG +"	1	90016	"OXACILLIN"				"R"`
+
+```{sql cohort_1, eval=F}
+with cpos as (
+  select * from microbiologyevents 
+  where interpretation is not null 
+    and org_name ilike '%STAPH%+%'
+),
+
+cneg as (
+  select * from microbiologyevents 
+  where interpretation is not null 
+    and org_name ilike '%STAPH%NEG%'
+)
+
+select distinct on (dxm.subject_id) dxm.* from microbiologyevents dxm
+right join cneg n on n.subject_id = dxm.subject_id
+right join cpos p on n.subject_id = dxm.subject_id
+```
