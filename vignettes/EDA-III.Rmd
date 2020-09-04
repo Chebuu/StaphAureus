@@ -191,7 +191,7 @@ gt(.displayN %>% head(6)) %>%
   ) %>%
   tab_source_note(md(''))
 
-.displayP <- cohort.table %>% filter(grepl('+', org_name))
+.displayP <- cohort.table %>% filter(grepl('\\+', org_name))
 gt(.displayP %>% head(6)) %>%
   fmt_number(columns = vars(isolate_num), decimals = 0) %>%
   fmt_passthrough(columns = vars(subject_id, org_name)) %>%

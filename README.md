@@ -99,7 +99,7 @@ cohort.N <<- length(unique(cohort$subject_id))
 
 <!--html_preserve-->
 
-<div id="dirreyxshj" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="bbmiujjipp" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -307,7 +307,7 @@ COAG (-)
 
 <!--html_preserve-->
 
-<div id="kskxfkegxq" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="buegjtmzrv" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -325,7 +325,7 @@ COAG (-)
 
 <th colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>
 
-(N=4999)
+(N=3411)
 
 </th>
 
@@ -409,28 +409,6 @@ COAG (+)
 
 <td class="gt_row gt_center">
 
-28805
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (-)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
 29337
 
 </td>
@@ -475,13 +453,35 @@ COAG (+)
 
 <td class="gt_row gt_center">
 
-4430
+19199
 
 </td>
 
 <td class="gt_row gt_left">
 
-COAG (-)
+COAG (+)
+
+</td>
+
+<td class="gt_row gt_center">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_center">
+
+65999
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (+)
 
 </td>
 
@@ -523,3 +523,20 @@ NOTE: All the MRSA screens (and a few other `itemid`s) have null values.
 `222577 16839 168517 "2102-09-06 00:00:00" "2102-09-06 09:49:00" 70091
 "MRSA SCREEN" 80023 "STAPH AUREUS COAG +" 1 90016 "OXACILLIN" "R"`
 
+``` sql
+with cpos as (
+  select * from microbiologyevents 
+  where interpretation is not null 
+    and org_name ilike '%STAPH%+%'
+),
+
+cneg as (
+  select * from microbiologyevents 
+  where interpretation is not null 
+    and org_name ilike '%STAPH%NEG%'
+)
+
+select distinct on (dxm.subject_id) dxm.* from microbiologyevents dxm
+right join cneg n on n.subject_id = dxm.subject_id
+right join cpos p on n.subject_id = dxm.subject_id
+```
