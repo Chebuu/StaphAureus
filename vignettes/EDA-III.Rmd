@@ -161,7 +161,7 @@ data(cohort)
 #     ) 
 #   )
 ```
-```{r cohort_tab, eval=T, echo=F, fig.align='right'}
+```{r cohort_tab, eval=T, echo=T, fig.align='right'}
 cohort.iso.table -> cohort.table
 
 .displayN <- cohort.table %>% filter(grepl('-', org_name)) 

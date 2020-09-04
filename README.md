@@ -50,8 +50,6 @@ group by pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num
 ``` r
 data(cohort)
 
-cohort.N <<- length(unique(cohort$subject_id))
-
 (
   cohort.hist.isolates <<- {
     cohort.iso.table <<- cohort %>%
@@ -97,9 +95,23 @@ cohort.N <<- length(unique(cohort$subject_id))
 
 <img src="./EDA-III_files/figure-gfm/cohort_mrt-1.png" style="display: block; margin: auto;" />
 
+``` r
+cohort.iso.table -> cohort.table
+
+.displayN <- cohort.table %>% filter(grepl('-', org_name)) 
+gt(.displayN %>% head(6)) %>%
+  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+  tab_header(
+    title = md(''),
+    subtitle = sprintf('(N=%s)', nrow(.displayN))
+  ) %>%
+  tab_source_note(md(''))
+```
+
 <!--html_preserve-->
 
-<div id="bbmiujjipp" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="vvmundhkrx" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -305,9 +317,22 @@ COAG (-)
 
 <!--/html_preserve-->
 
+``` r
+
+.displayP <- cohort.table %>% filter(grepl('\\+', org_name))
+gt(.displayP %>% head(6)) %>%
+  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+  tab_header(
+    title = md(''),
+    subtitle = sprintf('(N=%s)', nrow(.displayP))
+  ) %>%
+  tab_source_note(md(''))
+```
+
 <!--html_preserve-->
 
-<div id="buegjtmzrv" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="hfmsdsvsie" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
