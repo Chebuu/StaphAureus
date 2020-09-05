@@ -56,24 +56,6 @@ library(kableExtra)
 
 #### Cohort COAG(+)/COAG(-)
 
-```{sql coag_sql}
-with cpos as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%+%'
-),
-
-cneg as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%NEG%'
-)
-
-select distinct pt.subject_id from patients pt
-left join cneg n on n.subject_id = pt.subject_id
-left join cpos p on n.subject_id = pt.subject_id
-```
-
 ```{sql cohort_sql, eval = F}
 create materialized view cohort as
 select pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num 
@@ -131,36 +113,7 @@ data(cohort)
 )
 ```
 
-```{r cohort_kab, eval=F, echo=F, fig.align='right'}
-# cohort.iso.table -> cohort.table
-# 
-# .displayN <- cohort.table %>% filter(grepl('-', org_name)) %>% head(6)
-# .displayP <- cohort.table %>% filter(grepl('+', org_name)) %>% head(6)
-#   do.call(
-#     plot_grid,
-#     list(
-#       A = gt(.displayN) %>%
-#         fmt_number(columns = vars(isolate_num), decimals = 0) %>%
-#         fmt_passthrough(columns = vars(subject_id, org_name)) %>%
-#         tab_header(
-#           title = md(''),
-#           subtitle = sprintf('(N=%s)', nrow(.displayN))
-#         ) %>%
-#         tab_source_note(md(''))
-#       ,
-#       B = gt(.displayN) %>%
-#         fmt_number(columns = vars(isolate_num), decimals = 0) %>%
-#         fmt_passthrough(columns = vars(subject_id, org_name)) %>%
-#         tab_header(
-#           title = md(''),
-#           subtitle = sprintf('(N=%s)', nrow(.displayP))
-#         ) %>%
-#         tab_source_note(md(''))
-#       ,
-#       labels = c('A', 'B')
-#     ) 
-#   )
-```
+
 ```{r cohort_tab, eval=T, echo=T, fig.align='right'}
 cohort.iso.table -> cohort.table
 
@@ -185,20 +138,20 @@ gt(.displayP %>% head(6)) %>%
   tab_source_note(md(''))
 ```
 
+Interpretation levels:
+  - "P"
+  - "S"
+  - "R"
+  - "I"
+  - "None"
+
 NOTE: `308	STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS`
 
-Interpretation levels:
-- "P"
-- "S"
-- "R"
-- "I"
-- "None"
-
-NOTE: All the MRSA screens (and a few other `itemid`s) have null values.
+NOTE: Many of the null values come from the MRSA screens (and a few other `itemid`s).
 
 `222577	16839	168517	"2102-09-06 00:00:00"	"2102-09-06 09:49:00"	70091	"MRSA SCREEN"	80023	"STAPH AUREUS COAG +"	1	90016	"OXACILLIN"				"R"`
 
-```{sql cohort_1, eval=F}
+```{sql cohort_x, eval=F}
 with cpos as (
   select * from microbiologyevents 
   where interpretation is not null 
