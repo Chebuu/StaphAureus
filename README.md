@@ -76,8 +76,8 @@ data(cohort)
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%
-    distinct_at(
-      vars(subject_id, org_name, isolate_num)
+    group_by(
+      subject_id, org_name, isolate_num, expire_flag
     ) %>%
     mutate(
       org_name = case_when(
@@ -88,7 +88,7 @@ data(cohort)
   } %>% 
   ggplot(aes(x=isolate_num)) +
     geom_histogram(stat='count') +
-    facet_grid(~org_name) +
+    facet_grid(~org_name + expire_flag) +
     theme_bw() 
 )
 ```
@@ -111,7 +111,7 @@ gt(.displayN %>% head(6)) %>%
 
 <!--html_preserve-->
 
-<div id="vvmundhkrx" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="tjixdnygsg" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -332,7 +332,7 @@ gt(.displayP %>% head(6)) %>%
 
 <!--html_preserve-->
 
-<div id="hfmsdsvsie" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="siqtswetuu" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 

@@ -114,8 +114,8 @@ data(cohort)
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%
-    distinct_at(
-      vars(subject_id, org_name, isolate_num)
+    group_by(
+      subject_id, org_name, isolate_num, expire_flag
     ) %>%
     mutate(
       org_name = case_when(
@@ -126,7 +126,7 @@ data(cohort)
   } %>% 
   ggplot(aes(x=isolate_num)) +
     geom_histogram(stat='count') +
-    facet_grid(~org_name) +
+    facet_grid(~org_name + expire_flag) +
     theme_bw() 
 )
 ```
