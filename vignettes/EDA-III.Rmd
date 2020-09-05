@@ -117,25 +117,25 @@ data(cohort)
 ```{r cohort_tab, eval=T, echo=T, fig.align='right'}
 cohort.iso.table -> cohort.table
 
-.displayN <- cohort.table %>% filter(grepl('-', org_name)) 
-gt(.displayN %>% head(6)) %>%
-  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
-  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
-  tab_header(
-    title = md(''),
-    subtitle = sprintf('(N=%s)', nrow(.displayN))
-  ) %>%
-  tab_source_note(md(''))
-
 .displayP <- cohort.table %>% filter(grepl('\\+', org_name))
 gt(.displayP %>% head(6)) %>%
   fmt_number(columns = vars(isolate_num), decimals = 0) %>%
   fmt_passthrough(columns = vars(subject_id, org_name)) %>%
   tab_header(
-    title = md(''),
+    title = md('COAG (+)'),
     subtitle = sprintf('(N=%s)', nrow(.displayP))
   ) %>%
-  tab_source_note(md(''))
+  tab_source_note(md('Sample of cohort'))
+
+.displayN <- cohort.table %>% filter(grepl('-', org_name)) 
+gt(.displayN %>% head(6)) %>%
+  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+  tab_header(
+    title = md('COAG (-)'),
+    subtitle = sprintf('(N=%s)', nrow(.displayN))
+  ) %>%
+  tab_source_note(md('Sample of cohort'))
 ```
 
 Interpretation levels:
@@ -147,11 +147,12 @@ Interpretation levels:
 
 NOTE: `308	STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS`
 
-NOTE: Many of the null values come from the MRSA screens (and a few other `itemid`s).
+NOTE: Many of the null values come from MRSA screens (and a few other `itemid`s).
 
 `222577	16839	168517	"2102-09-06 00:00:00"	"2102-09-06 09:49:00"	70091	"MRSA SCREEN"	80023	"STAPH AUREUS COAG +"	1	90016	"OXACILLIN"				"R"`
 
 ```{sql cohort_x, eval=F}
+-- Not Run
 with cpos as (
   select * from microbiologyevents 
   where interpretation is not null 
