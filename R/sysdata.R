@@ -15,6 +15,7 @@
 # --- --- ---
 
 #' @title Dataset `orgids`
+#' @export
 # orgids = read.csv('inst/extdata/orgids.csv')
 # # usethis::use_data(orgids, overwrite=TRUE)
 
@@ -25,7 +26,7 @@
 # --- --- ---
 
 #' @title Dataset `coinfx`
-# orgids = read.csv('inst/extdata/n_coinfx.csv')
+# orgids = read.csv('inst/extdata/coinfx.csv')
 # # usethis::use_data(coinfx, overwrite=TRUE)
 
 #' @title Dataset `n_coinfx`
