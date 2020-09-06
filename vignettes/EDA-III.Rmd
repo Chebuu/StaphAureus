@@ -1,7 +1,6 @@
 ---
 title: "EDA-III"
 output: rmarkdown::github_document
-
 ---
 
 ```{r, include = FALSE}
@@ -201,7 +200,6 @@ data(cohort)
 )
 ```
 
-
 ```{r cohort_tab, eval=T, echo=T, fig.align='right'}
 cohort.iso.table -> cohort.table
 
@@ -225,5 +223,3 @@ gt(.displayN %>% head(6)) %>%
   ) %>%
   tab_source_note(md('Subsample of cohort (confirmed positive)'))
 ```
-
-
