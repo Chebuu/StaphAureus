@@ -89,10 +89,9 @@ kable(staphids)
 ```
 
 ```{sql}
--- Confirmed positive and negative samples
-drop materialized view if exists populataion cascade;
-create materialized view population as
-select 
+-- Confirmed positive and negative tests
+drop materialized view if exists study_population cascade;
+create materialized view study_population
 	pt.subject_id, 
 	mb.hadm_id, 
 	pt.expire_flag, 
@@ -102,9 +101,7 @@ select
 from microbiologyevents mb
 left join patients pt 
   on mb.subject_id = pt.subject_id
-  and mb.org_name ilike any (
-    array [ '%STAPH%+%', '%STAPH%NEG%']
-  )
+  and mb.org_name ilike '%STAPH%AUREUS%'
 group by 
   pt.subject_id, 
   mb.hadm_id, 
@@ -135,10 +132,10 @@ All NULL `population` test interpretation values.
 -- Confirmed negative subset
 drop materialized view if exists control cascade;
 create materialized view control as
-select * from population where interpretation is NULL
+select * from study_population where interpretation is NULL
 ```
 
-#### Positive Cohort COAG(+)/COAG(-)
+#### Positive Cohort COAG(+) *S. aureus*
 
 All non-NULL `population` test interpretation values.
 
@@ -146,7 +143,7 @@ All non-NULL `population` test interpretation values.
 -- Confirmed positive subset
 drop materialized view if exists cohort cascade;
 create materialized view cohort as
-select * from population where interpretation is not NULL
+select * from study_population where interpretation is not NULL
 ```
 
 ```{r cohort_iso, echo=T, eval=T, fig.width=5}
