@@ -20,14 +20,29 @@ library(StaphAureus)
 vignette('EDA-III', package='StaphAureus')
 ```
 
+## References
+### Staph/flu 
+https://doi.org/10.1128/mBio.02068-16
+https://doi.org/10.1093/infdis/jiw441
+https://doi.org/10.3389/fimmu.2018.03189
+https://doi.org/10.1016/j.tim.2019.02.006
+https://doi.org/10.1164/rccm.202004-1322OC
+### Staph/pseudomonas 
+https://doi.org/10.1073/pnas.0606756104
+
 ```{sql, eval=F}
-select mb.subejct_id, mb.org_name
-from cohort ch
-right join microbiologyevents mb 
-  on ch.subject_id = mb.subject_id
-  and ch.hadm_id = mb.hadm_id
-where mb.org_name ilike any (
-    array [ '%STAPH%+%', '%STAPH%NEG%']
-  )
-group by pt.subject_id, pt.hadm_id, pt.expire_flag, mb.org_name, mb.isolate_num, mb.interpretation 
+select
+	cht.subject_id, 
+	cht.hadm_id,
+	cht.expire_flag,
+	mb.org_itemid,
+	mb.org_name,
+	mb.isolate_num
+from cohort cht 
+right join microbiologyevents mb
+	on mb.subject_id = cht.subject_id
+	and mb.hadm_id = cht.hadm_id
+where mb.org_name not like '%STAPH%AUREUS%'
+	and mb.org_name not like '%STAPHYLOCOCCUS%'
+group by cht.subject_id, cht.hadm_id, mb.org_itemid, mb.org_name, mb.isolate_num, cht.expire_flag
 ```

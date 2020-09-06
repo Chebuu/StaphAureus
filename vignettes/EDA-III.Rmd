@@ -16,6 +16,9 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Introduction
+
+S aureus and S intermedius are coagulase positive. All other staphylococci are coagulase negative (ncbi.nlm.nih.gov/books/NBK8448).
 
 ```{r setup}
 devtools::install_github('chebuu/StaphAureus')
@@ -54,14 +57,6 @@ library(kableExtra)
 # usethis::use_package('cowplot')
 # usethis::use_package('gridExtra')
 # usethis::use_package('kableExtra')
-
-# population = read.csv(system.file('extdata/population.csv', package='StaphAureus'))
-# control = population[is.na(population$interpretation),]
-# cohort = population[!is.na(population$interpretation),]
-# 
-# usethis::use_data(population, overwrite=TRUE)
-# usethis::use_data(cohort, overwrite=TRUE)
-# usethis::use_data(control, overwrite=TRUE)
 ```
 
 ```{r plot_setup, eval=T, include=F}
@@ -75,6 +70,15 @@ ggplot2::theme_update(
 ```
 
 ### Study Population
+```{sql}
+select distinct org_name 
+from microbiologyevents 
+where org_name ilike '%staph%'
+```
+```{r, echo=F, eval=T, include=T}
+data(orgids)
+kable(orgids)
+```
 
 ```{sql population_sql, eval = F}
 -- Confirmed positive and negative samples
@@ -223,9 +227,4 @@ gt(.displayN %>% head(6)) %>%
   tab_source_note(md('Subsample of cohort (confirmed positive)'))
 ```
 
-NOTE: Positive COAG(-) test results are labeled "Presumptive not *S.saprophyticus*".
-`308	"STAPHYLOCOCCUS, COAGULASE NEGATIVE"  "None"`
-`308	"STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS"  "R"`
 
-NOTE: I think most of the NULL interpretations come from MRSA screens.
-`"MRSA SCREEN"  80023  "STAPH AUREUS COAG +"  "OXACILLIN"  "R"`
