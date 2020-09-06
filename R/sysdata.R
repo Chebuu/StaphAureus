@@ -21,3 +21,14 @@
 #' @title Dataset `staphids`
 # staph = read.csv('inst/extdata/staphids.csv')
 # # usethis::use_data(staphids, overwrite=TRUE)
+
+# --- --- ---
+
+#' @title Dataset `coinfx`
+# orgids = read.csv('inst/extdata/n_coinfx.csv')
+# # usethis::use_data(coinfx, overwrite=TRUE)
+
+#' @title Dataset `n_coinfx`
+# orgids = read.csv('inst/extdata/n_coinfx.csv')
+# # usethis::use_data(n_coinfx, overwrite=TRUE)
+

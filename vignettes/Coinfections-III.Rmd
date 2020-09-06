@@ -17,7 +17,56 @@ https://doi.org/10.1164/rccm.202004-1322OC
 ### Staph/pseudomonas 
 https://doi.org/10.1073/pnas.0606756104
 
-```{r, include = FALSE}
+```{sql delete, eval=F}
+with study_population as (
+	select
+	pt.subject_id, 
+	mb.hadm_id, 
+	pt.expire_flag, 
+	mb.org_name, 
+	mb.isolate_num, 
+	mb.interpretation 
+from microbiologyevents mb
+left join patients pt 
+  on mb.subject_id = pt.subject_id
+  and mb.org_name ilike '%STAPH%AUREUS%'
+group by 
+  pt.subject_id, 
+  mb.hadm_id, 
+  mb.org_name, 
+  mb.isolate_num, 
+  mb.interpretation,
+  pt.expire_flag
+)
+
+, cohort as (
+	select * from study_population where interpretation is not NULL
+)
+
+, coinfx as (
+	select
+		cht.subject_id, 
+		cht.hadm_id,
+		cht.expire_flag,
+		mb.org_itemid,
+		mb.org_name,
+		mb.isolate_num
+	from cohort cht 
+	right join microbiologyevents mb
+		on mb.subject_id = cht.subject_id
+		and mb.hadm_id = cht.hadm_id
+	where mb.org_name not ilike '%staph%'
+	group by cht.subject_id, cht.hadm_id, mb.org_itemid, mb.org_name, mb.isolate_num, cht.expire_flag
+)
+
+select n_count, org_name from (
+	select distinct on (org_name) org_name,
+	count(org_name) over (partition by org_name) as n_count
+	from coinfx order by org_name
+) _ order by org_name desc
+```
+
+```{r, eval=T, include = FALSE}
 library(StaphAureus)
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -28,6 +77,8 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.align='center'
 )
+
+library(kableExtra)
 ```
 
 ```{r setup, eval=F}
@@ -35,16 +86,16 @@ library(StaphAureus)
 vignette('EDA-III', package='StaphAureus')
 ```
 
-```{sql, eval=F}
+```{sql}
 drop materialized view if exists coinfx cascade;
 create materialized view coinfx as
 select
-	cht.subject_id, 
-	cht.hadm_id,
-	cht.expire_flag,
-	mb.org_itemid,
-	mb.org_name,
-	mb.isolate_num
+		cht.subject_id, 
+		cht.hadm_id,
+		cht.expire_flag,
+		mb.org_itemid,
+		mb.org_name,
+		mb.isolate_num
 from cohort cht 
 right join microbiologyevents mb
 	on mb.subject_id = cht.subject_id
@@ -58,6 +109,7 @@ group by
   mb.isolate_num, 
   cht.expire_flag
 ```
+
 ```{sql}
 select * from (
 	select distinct on (org_name) org_name,
@@ -65,7 +117,10 @@ select * from (
 	from coinfx order by org_name
 ) _ order by n_count desc
 ```
-
+```{r n_coinfx, eval=T, echo=F}
+data(n_coinfx)
+kable(n_coinfx)
+```
 
 ### K. oxytoca
 Houseflies (Musca domestica) have a mutualistic relationship with K. oxytoca. It can live on the surface of the housefly eggs and has a deterrent effect on the fungi growing in manure, thus benefiting the fly larvae which are competing with the fungi for nutrients (https://en.wikipedia.org/wiki/Klebsiella_oxytoca).
