@@ -71,16 +71,16 @@ ggplot2::theme_update(
 
 ### Study Population
 ```{sql}
-select distinct org_name 
+select distinct on (org_itemid), org_name, org_itemid
 from microbiologyevents 
 where org_name ilike '%staph%'
 ```
-```{r, echo=F, eval=T, include=T}
-data(orgids)
-kable(orgids)
+```{r staphids, echo=F, eval=T, include=T}
+data(staphids)
+kable(staphids)
 ```
 
-```{sql population_sql, eval = F}
+```{sql}
 -- Confirmed positive and negative samples
 drop materialized view if exists populataion cascade;
 create materialized view population as
@@ -123,7 +123,7 @@ Interpretation levels:
 
 All NULL `population` test interpretation values.
 
-```{sql control_sql, eval = F}
+```{sql}
 -- Confirmed negative subset
 drop materialized view if exists control cascade;
 create materialized view control as
@@ -134,7 +134,7 @@ select * from population where interpretation is NULL
 
 All non-NULL `population` test interpretation values.
 
-```{sql cohort_sql, eval = F}
+```{sql}
 -- Confirmed positive subset
 drop materialized view if exists cohort cascade;
 create materialized view cohort as
@@ -173,7 +173,6 @@ data(cohort)
 ```
 
 ```{r cohort_mrt, echo=T, eval=T, fig.width=5}
-
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%

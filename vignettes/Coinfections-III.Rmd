@@ -42,7 +42,6 @@ from cohort cht
 right join microbiologyevents mb
 	on mb.subject_id = cht.subject_id
 	and mb.hadm_id = cht.hadm_id
-where mb.org_name not like '%STAPH%AUREUS%'
-	and mb.org_name not like '%STAPHYLOCOCCUS%'
+where mb.org_name not ilike '%staph%'
 group by cht.subject_id, cht.hadm_id, mb.org_itemid, mb.org_name, mb.isolate_num, cht.expire_flag
 ```
