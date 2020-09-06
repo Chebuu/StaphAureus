@@ -70,6 +70,15 @@ ggplot2::theme_update(
 
 ### Study Population
 ```{sql}
+drop materialized view if exists orgids cascade;
+create materialized view orgids as
+select distinct on (org_itemid), org_name, org_itemid
+from microbiologyevents 
+where org_name not ilike '%staph%'
+```
+```{sql}
+drop materialized view if exists staphids cascade;
+create materialized view staphids as
 select distinct on (org_itemid), org_name, org_itemid
 from microbiologyevents 
 where org_name ilike '%staph%'
