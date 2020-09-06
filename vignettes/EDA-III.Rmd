@@ -19,6 +19,10 @@ knitr::opts_chunk$set(
 
 S aureus and S intermedius are coagulase positive. All other staphylococci are coagulase negative (ncbi.nlm.nih.gov/books/NBK8448).
 
+[Wiki COAG(+)](https://en.wikipedia.org/wiki/Coagulase): Staphylococcus aureus subsp. anaerobius, S. aureus subsp. aureus, S. delphini, S. hyicus, S. intermedius, S. lutrae, and Staphylococcus schleiferi subsp. coagulans.
+
+[Wiki COAG(-)](https://en.wikipedia.org/wiki/Coagulase): S. saprophyticus, S.cohnii subsp. cohnii, S. cohnii subsp. urealyticum, S. captitus subsp. captitus, S. warneri, S.hominis, S.epidermidis, S. caprae, and S.lugdunensis
+
 ```{r setup}
 devtools::install_github('chebuu/StaphAureus')
 
