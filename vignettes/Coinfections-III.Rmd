@@ -78,6 +78,7 @@ knitr::opts_chunk$set(
   fig.align='center'
 )
 
+library(dplyr)
 library(kableExtra)
 ```
 
@@ -86,6 +87,7 @@ library(StaphAureus)
 vignette('EDA-III', package='StaphAureus')
 ```
 
+## Coinfections
 ```{sql}
 drop materialized view if exists coinfx cascade;
 create materialized view coinfx as
@@ -119,8 +121,5 @@ select * from (
 ```
 ```{r n_coinfx, eval=T, echo=F}
 data(n_coinfx)
-kable(n_coinfx)
+n_coinfx %>% select(org_name, n_count) %>% head(12) %>% kable
 ```
-
-### K. oxytoca
-Houseflies (Musca domestica) have a mutualistic relationship with K. oxytoca. It can live on the surface of the housefly eggs and has a deterrent effect on the fungi growing in manure, thus benefiting the fly larvae which are competing with the fungi for nutrients (https://en.wikipedia.org/wiki/Klebsiella_oxytoca).

@@ -1,0 +1,21 @@
+---
+title: "Epidemiology-III"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Epidemiology-III}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(StaphAureus)
+```
+
+https://doi.org/10.1007/s10096-019-03763-0

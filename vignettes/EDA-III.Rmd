@@ -25,17 +25,7 @@ S aureus and S intermedius are coagulase positive. All other staphylococci are c
 
 ```{r setup}
 devtools::install_github('chebuu/StaphAureus')
-
 library(StaphAureus)
-
-## Imports:
-# library(gt)
-# library(grid)
-# library(dplyr)
-# library(ggplot2)
-# library(cowplot)
-# library(gridExtra)
-# library(kableExtra)
 ```
 
 ```{r internal, eval=T, include=F}
