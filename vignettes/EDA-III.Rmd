@@ -53,11 +53,19 @@ library(kableExtra)
 # usethis::use_package('gridExtra')
 # usethis::use_package('kableExtra')
 
+# population = read.csv(system.file('extdata/population.csv', package='StaphAureus'))
+# control = population[is.na(population$interpretation),]
+# cohort = population[!is.na(population$interpretation),]
+# 
+# usethis::use_data(population, overwrite=TRUE)
+# usethis::use_data(cohort, overwrite=TRUE)
+# usethis::use_data(control, overwrite=TRUE)
+
 ```
 
 ### Study Population
 
-```{sql cohort_sql, eval = F}
+```{sql population_sql, eval = F}
 -- Confirmed positive and negative samples
 drop materialized view if exists populataion cascade;
 create materialized view population as
@@ -87,21 +95,20 @@ Interpretation levels:
 
 `"None"`
   - Negative test result (NULL value)
-`"P"`
-  - Positive test result (S/R not tested)
-`"S"`
-  - Positive test result (susceptible)
 `"R"`
   - Positive test result (resistant)
+`"S"`
+  - Positive test result (susceptible)
 `"I"`
   - Positive test result (intermediate)
-
+`"P"`
+  - Positive test result (S/R not tested)
 
 #### Negative Control 
 
 All NULL `population` test interpretation values.
 
-```{sql cohort_sql, eval = F}
+```{sql control_sql, eval = F}
 -- Confirmed negative subset
 drop materialized view if exists control cascade;
 create materialized view control as
@@ -159,7 +166,10 @@ data(cohort)
   ggplot(aes(x=isolate_num)) +
     geom_histogram(stat='count') +
     facet_grid(~org_name + expire_flag) +
-    theme_bw() 
+    labs(
+      title='Mortality by COAG(+)/(-)',
+      subtitle = '(S.aureus positive)'
+    ) + theme_bw()
 )
 ```
 
@@ -175,7 +185,7 @@ gt(.displayP %>% head(6)) %>%
     title = md('COAG (+)'),
     subtitle = sprintf('(N=%s)', nrow(.displayP))
   ) %>%
-  tab_source_note(md('Sample of cohort'))
+  tab_source_note(md('Subsample of cohort (confirmed positive)'))
 
 .displayN <- cohort.table %>% filter(grepl('-', org_name)) 
 gt(.displayN %>% head(6)) %>%
@@ -185,7 +195,7 @@ gt(.displayN %>% head(6)) %>%
     title = md('COAG (-)'),
     subtitle = sprintf('(N=%s)', nrow(.displayN))
   ) %>%
-  tab_source_note(md('Sample of cohort'))
+  tab_source_note(md('Subsample of cohort (confirmed positive)'))
 ```
 
 NOTE: Positive COAG(-) test results are labeled "Presumptive not *S.saprophyticus*".
