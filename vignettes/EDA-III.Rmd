@@ -10,13 +10,14 @@ knitr::opts_chunk$set(
   warning = FALSE,
   error = FALSE,
   eval = FALSE,
+  echo = TRUE,
   comment = "#>",
   fig.align='center'
 )
 ```
 
 
-```{r setup, echo=T, eval=F}
+```{r setup}
 devtools::install_github('chebuu/StaphAureus')
 library(StaphAureus)
 ## Imports:
@@ -29,7 +30,7 @@ library(StaphAureus)
 # library(kableExtra)
 ```
 
-```{r internal, eval=T, include=F}
+```{r internal, eval=T, echo=F}
 library(StaphAureus)
 
 # http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
@@ -54,19 +55,68 @@ library(kableExtra)
 
 ```
 
-#### Cohort COAG(+)/COAG(-)
+### Study Population
 
 ```{sql cohort_sql, eval = F}
-create materialized view cohort as
-select pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num 
+-- Confirmed positive and negative samples
+drop materialized view if exists populataion cascade;
+create materialized view population as
+select 
+	pt.subject_id, 
+	mb.hadm_id, 
+	pt.expire_flag, 
+	mb.org_name, 
+	mb.isolate_num, 
+	mb.interpretation 
 from microbiologyevents mb
 left join patients pt 
   on mb.subject_id = pt.subject_id
-where mb.interpretation is not null 
   and mb.org_name ilike any (
     array [ '%STAPH%+%', '%STAPH%NEG%']
   )
-group by pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num
+group by 
+  pt.subject_id, 
+  mb.hadm_id, 
+  mb.org_name, 
+  mb.isolate_num, 
+  mb.interpretation,
+  pt.expire_flag
+```
+
+Interpretation levels:
+
+`"None"`
+  - Negative test result (NULL value)
+`"P"`
+  - Positive test result (S/R not tested)
+`"S"`
+  - Positive test result (susceptible)
+`"R"`
+  - Positive test result (resistant)
+`"I"`
+  - Positive test result (intermediate)
+
+
+#### Negative Control 
+
+All NULL `population` test interpretation values.
+
+```{sql cohort_sql, eval = F}
+-- Confirmed negative subset
+drop materialized view if exists control cascade;
+create materialized view control as
+select * from population where interpretation is NULL
+```
+
+#### Positive Cohort COAG(+)/COAG(-)
+
+All non-NULL `population` test interpretation values.
+
+```{sql cohort_sql, eval = F}
+-- Confirmed positive subset
+drop materialized view if exists cohort cascade;
+create materialized view cohort as
+select * from population where interpretation is not NULL
 ```
 
 ```{r cohort_iso, echo=T, eval=T, fig.width=5}
@@ -138,21 +188,18 @@ gt(.displayN %>% head(6)) %>%
   tab_source_note(md('Sample of cohort'))
 ```
 
-Interpretation levels:
-  - "P"
-  - "S"
-  - "R"
-  - "I"
-  - "None"
+NOTE: Positive COAG(-) test results are labeled "Presumptive not *S.saprophyticus*".
+`308	"STAPHYLOCOCCUS, COAGULASE NEGATIVE"  "None"`
+`308	"STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS"  "R"`
 
-NOTE: `308	STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS`
-
-NOTE: Many of the null values come from MRSA screens (and a few other `itemid`s).
-
-`222577	16839	168517	"2102-09-06 00:00:00"	"2102-09-06 09:49:00"	70091	"MRSA SCREEN"	80023	"STAPH AUREUS COAG +"	1	90016	"OXACILLIN"				"R"`
+NOTE: I think most of the NULL interpretations come from MRSA screens.
+`"MRSA SCREEN"  80023  "STAPH AUREUS COAG +"  "OXACILLIN"  "R"`
 
 ```{sql cohort_x, eval=F}
--- Not Run
+-------------
+-- Not Run --
+-------------
+
 with cpos as (
   select * from microbiologyevents 
   where interpretation is not null 

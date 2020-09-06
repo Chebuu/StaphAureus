@@ -8,13 +8,26 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
+library(StaphAureus)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 ```
 
-```{r setup}
+```{r setup, eval=F}
 library(StaphAureus)
 vignette('EDA-III', package='StaphAureus')
+```
+
+```{sql, eval=F}
+select mb.subejct_id, mb.org_name
+from cohort ch
+right join microbiologyevents mb 
+  on ch.subject_id = mb.subject_id
+  and ch.hadm_id = mb.hadm_id
+where mb.org_name ilike any (
+    array [ '%STAPH%+%', '%STAPH%NEG%']
+  )
+group by pt.subject_id, pt.hadm_id, pt.expire_flag, mb.org_name, mb.isolate_num, mb.interpretation 
 ```
