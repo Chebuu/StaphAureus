@@ -19,7 +19,9 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 devtools::install_github('chebuu/StaphAureus')
+
 library(StaphAureus)
+
 ## Imports:
 # library(gt)
 # library(grid)
@@ -30,7 +32,7 @@ library(StaphAureus)
 # library(kableExtra)
 ```
 
-```{r internal, eval=T, echo=F}
+```{r internal, eval=T, include=F}
 library(StaphAureus)
 
 # http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
@@ -60,7 +62,16 @@ library(kableExtra)
 # usethis::use_data(population, overwrite=TRUE)
 # usethis::use_data(cohort, overwrite=TRUE)
 # usethis::use_data(control, overwrite=TRUE)
+```
 
+```{r plot_setup, eval=T, include=F}
+ggplot2::theme_update(
+  plot.title.position = 'plot',
+  plot.caption.position = 'plot',
+  plot.title = element_text(hjust = 0.5),
+  plot.caption = element_text(hjust = 0.5),
+  plot.subtitle = element_text(hjust = 0.5)
+) %+replace% theme_bw()
 ```
 
 ### Study Population
@@ -145,11 +156,20 @@ data(cohort)
   ggplot(aes(x=isolate_num)) +
     geom_histogram(stat='count') +
     facet_grid(~org_name) +
-    theme_bw() 
+    labs(
+      title = 'Staph isolates by coagulase',
+      subtitle = '(confirmed positive)'
+    ) +
+    theme_bw() + theme(
+      plot.title.position = 'plot',
+      plot.title = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5)
+    ) 
 )
 ```
 
 ```{r cohort_mrt, echo=T, eval=T, fig.width=5}
+
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%
@@ -167,9 +187,14 @@ data(cohort)
     geom_histogram(stat='count') +
     facet_grid(~org_name + expire_flag) +
     labs(
-      title='Mortality by COAG(+)/(-)',
-      subtitle = '(S.aureus positive)'
-    ) + theme_bw()
+      title = 'Patient mortality by coagulase/isolate',
+      subtitle = '(confirmed positive)'
+    ) + 
+    theme_bw() + theme(
+      plot.title.position = 'plot',
+      plot.title = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5)
+    ) 
 )
 ```
 
@@ -204,25 +229,3 @@ NOTE: Positive COAG(-) test results are labeled "Presumptive not *S.saprophyticu
 
 NOTE: I think most of the NULL interpretations come from MRSA screens.
 `"MRSA SCREEN"  80023  "STAPH AUREUS COAG +"  "OXACILLIN"  "R"`
-
-```{sql cohort_x, eval=F}
--------------
--- Not Run --
--------------
-
-with cpos as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%+%'
-),
-
-cneg as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%NEG%'
-)
-
-select distinct on (dxm.subject_id) dxm.* from microbiologyevents dxm
-right join cneg n on n.subject_id = dxm.subject_id
-right join cpos p on n.subject_id = dxm.subject_id
-```

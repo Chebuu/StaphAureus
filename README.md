@@ -3,7 +3,9 @@ EDA-III
 
 ``` r
 devtools::install_github('chebuu/StaphAureus')
+
 library(StaphAureus)
+
 ## Imports:
 # library(gt)
 # library(grid)
@@ -14,37 +16,66 @@ library(StaphAureus)
 # library(kableExtra)
 ```
 
-#### Cohort COAG(+)/COAG(-)
+### Study Population
 
 ``` sql
-with cpos as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%+%'
-),
-
-cneg as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%NEG%'
-)
-
-select distinct pt.subject_id from patients pt
-left join cneg n on n.subject_id = pt.subject_id
-left join cpos p on n.subject_id = pt.subject_id
-```
-
-``` sql
-create materialized view cohort as
-select pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num 
+-- Confirmed positive and negative samples
+drop materialized view if exists populataion cascade;
+create materialized view population as
+select 
+    pt.subject_id, 
+    mb.hadm_id, 
+    pt.expire_flag, 
+    mb.org_name, 
+    mb.isolate_num, 
+    mb.interpretation 
 from microbiologyevents mb
 left join patients pt 
   on mb.subject_id = pt.subject_id
-where mb.interpretation is not null 
   and mb.org_name ilike any (
     array [ '%STAPH%+%', '%STAPH%NEG%']
   )
-group by pt.subject_id, pt.expire_flag, mb.org_name, mb.isolate_num
+group by 
+  pt.subject_id, 
+  mb.hadm_id, 
+  mb.org_name, 
+  mb.isolate_num, 
+  mb.interpretation,
+  pt.expire_flag
+```
+
+Interpretation levels: 
+
+`"R"`    - Positive test result (resistant) 
+
+`"S"`    - Positive test result (susceptible) 
+
+`"I"`    - Positive test result (intermediate) 
+
+`"P"`    - Positive test result (S/R not tested) 
+
+`"None"` - Negative test result (NULL value) 
+
+### Negative Control
+
+All NULL `population` test interpretation values.
+
+``` sql
+-- Confirmed negative subset
+drop materialized view if exists control cascade;
+create materialized view control as
+select * from population where interpretation is NULL
+```
+
+### Positive Cohort COAG(+)/COAG(-)
+
+All non-NULL `population` test interpretation values.
+
+``` sql
+-- Confirmed positive subset
+drop materialized view if exists cohort cascade;
+create materialized view cohort as
+select * from population where interpretation is not NULL
 ```
 
 ``` r
@@ -66,13 +97,22 @@ data(cohort)
   ggplot(aes(x=isolate_num)) +
     geom_histogram(stat='count') +
     facet_grid(~org_name) +
-    theme_bw() 
+    labs(
+      title = 'Staph isolates by coagulase',
+      subtitle = '(confirmed positive)'
+    ) +
+    theme_bw() + theme(
+      plot.title.position = 'plot',
+      plot.title = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5)
+    ) 
 )
 ```
 
 <img src="./EDA-III_files/figure-gfm/cohort_iso-1.png" style="display: block; margin: auto;" />
 
 ``` r
+
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%
@@ -89,7 +129,15 @@ data(cohort)
   ggplot(aes(x=isolate_num)) +
     geom_histogram(stat='count') +
     facet_grid(~org_name + expire_flag) +
-    theme_bw() 
+    labs(
+      title = 'Patient mortality by coagulase/isolate',
+      subtitle = '(confirmed positive)'
+    ) + 
+    theme_bw() + theme(
+      plot.title.position = 'plot',
+      plot.title = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5)
+    ) 
 )
 ```
 
@@ -98,20 +146,20 @@ data(cohort)
 ``` r
 cohort.iso.table -> cohort.table
 
-.displayN <- cohort.table %>% filter(grepl('-', org_name)) 
-gt(.displayN %>% head(6)) %>%
+.displayP <- cohort.table %>% filter(grepl('\\+', org_name))
+gt(.displayP %>% head(6)) %>%
   fmt_number(columns = vars(isolate_num), decimals = 0) %>%
   fmt_passthrough(columns = vars(subject_id, org_name)) %>%
   tab_header(
-    title = md(''),
-    subtitle = sprintf('(N=%s)', nrow(.displayN))
+    title = md('COAG (+)'),
+    subtitle = sprintf('(N=%s)', nrow(.displayP))
   ) %>%
-  tab_source_note(md(''))
+  tab_source_note(md('Subsample of cohort (confirmed positive)'))
 ```
 
 <!--html_preserve-->
 
-<div id="tjixdnygsg" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="cbetwlwkzr" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -121,6 +169,8 @@ gt(.displayN %>% head(6)) %>%
 
 <th colspan="3" class="gt_heading gt_title gt_font_normal" style>
 
+COAG (+)
+
 </th>
 
 </tr>
@@ -129,7 +179,7 @@ gt(.displayN %>% head(6)) %>%
 
 <th colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>
 
-(N=1588)
+(N=994)
 
 </th>
 
@@ -141,7 +191,7 @@ gt(.displayN %>% head(6)) %>%
 
 <tr>
 
-<th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">
+<th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">
 
 subject\_id
 
@@ -153,7 +203,7 @@ org\_name
 
 </th>
 
-<th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">
+<th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">
 
 isolate\_num
 
@@ -167,19 +217,19 @@ isolate\_num
 
 <tr>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
-28805
+9
 
 </td>
 
 <td class="gt_row gt_left">
 
-COAG (-)
+COAG (+)
 
 </td>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
 1
 
@@ -189,19 +239,19 @@ COAG (-)
 
 <tr>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
-4430
+31
 
 </td>
 
 <td class="gt_row gt_left">
 
-COAG (-)
+COAG (+)
 
 </td>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
 1
 
@@ -211,9 +261,190 @@ COAG (-)
 
 <tr>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
-17125
+38
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (+)
+
+</td>
+
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_right">
+
+41
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (+)
+
+</td>
+
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_right">
+
+43
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (+)
+
+</td>
+
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_right">
+
+96
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (+)
+
+</td>
+
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+</tbody>
+
+<tfoot class="gt_sourcenotes">
+
+<tr>
+
+<td class="gt_sourcenote" colspan="3">
+
+Subsample of cohort (confirmed positive)
+
+</td>
+
+</tr>
+
+</tfoot>
+
+</table>
+
+</div>
+
+<!--/html_preserve-->
+
+``` r
+
+.displayN <- cohort.table %>% filter(grepl('-', org_name)) 
+gt(.displayN %>% head(6)) %>%
+  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
+  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
+  tab_header(
+    title = md('COAG (-)'),
+    subtitle = sprintf('(N=%s)', nrow(.displayN))
+  ) %>%
+  tab_source_note(md('Subsample of cohort (confirmed positive)'))
+```
+
+<!--html_preserve-->
+
+<div id="bnzbxxrqin" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+
+<table class="gt_table">
+
+<thead class="gt_header">
+
+<tr>
+
+<th colspan="3" class="gt_heading gt_title gt_font_normal" style>
+
+COAG (-)
+
+</th>
+
+</tr>
+
+<tr>
+
+<th colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>
+
+(N=494)
+
+</th>
+
+</tr>
+
+</thead>
+
+<thead class="gt_col_headings">
+
+<tr>
+
+<th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">
+
+subject\_id
+
+</th>
+
+<th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">
+
+org\_name
+
+</th>
+
+<th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">
+
+isolate\_num
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody class="gt_table_body">
+
+<tr>
+
+<td class="gt_row gt_right">
+
+41
 
 </td>
 
@@ -223,7 +454,73 @@ COAG (-)
 
 </td>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_right">
+
+106
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (-)
+
+</td>
+
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_right">
+
+109
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (-)
+
+</td>
+
+<td class="gt_row gt_right">
+
+1
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_right">
+
+109
+
+</td>
+
+<td class="gt_row gt_left">
+
+COAG (-)
+
+</td>
+
+<td class="gt_row gt_right">
 
 2
 
@@ -233,31 +530,9 @@ COAG (-)
 
 <tr>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
-353
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (-)
-
-</td>
-
-<td class="gt_row gt_center">
-
-4
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
-18350
+148
 
 </td>
 
@@ -267,7 +542,7 @@ COAG (-)
 
 </td>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
 1
 
@@ -277,9 +552,9 @@ COAG (-)
 
 <tr>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
-11024
+188
 
 </td>
 
@@ -289,7 +564,7 @@ COAG (-)
 
 </td>
 
-<td class="gt_row gt_center">
+<td class="gt_row gt_right">
 
 1
 
@@ -305,226 +580,7 @@ COAG (-)
 
 <td class="gt_sourcenote" colspan="3">
 
-</td>
-
-</tr>
-
-</tfoot>
-
-</table>
-
-</div>
-
-<!--/html_preserve-->
-
-``` r
-
-.displayP <- cohort.table %>% filter(grepl('\\+', org_name))
-gt(.displayP %>% head(6)) %>%
-  fmt_number(columns = vars(isolate_num), decimals = 0) %>%
-  fmt_passthrough(columns = vars(subject_id, org_name)) %>%
-  tab_header(
-    title = md(''),
-    subtitle = sprintf('(N=%s)', nrow(.displayP))
-  ) %>%
-  tab_source_note(md(''))
-```
-
-<!--html_preserve-->
-
-<div id="siqtswetuu" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-
-<table class="gt_table">
-
-<thead class="gt_header">
-
-<tr>
-
-<th colspan="3" class="gt_heading gt_title gt_font_normal" style>
-
-</th>
-
-</tr>
-
-<tr>
-
-<th colspan="3" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>
-
-(N=3411)
-
-</th>
-
-</tr>
-
-</thead>
-
-<thead class="gt_col_headings">
-
-<tr>
-
-<th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">
-
-subject\_id
-
-</th>
-
-<th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">
-
-org\_name
-
-</th>
-
-<th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">
-
-isolate\_num
-
-</th>
-
-</tr>
-
-</thead>
-
-<tbody class="gt_table_body">
-
-<tr>
-
-<td class="gt_row gt_center">
-
-2624
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (+)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
-11785
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (+)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
-29337
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (+)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
-21162
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (+)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
-19199
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (+)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-<tr>
-
-<td class="gt_row gt_center">
-
-65999
-
-</td>
-
-<td class="gt_row gt_left">
-
-COAG (+)
-
-</td>
-
-<td class="gt_row gt_center">
-
-1
-
-</td>
-
-</tr>
-
-</tbody>
-
-<tfoot class="gt_sourcenotes">
-
-<tr>
-
-<td class="gt_sourcenote" colspan="3">
+Subsample of cohort (confirmed positive)
 
 </td>
 
@@ -538,30 +594,12 @@ COAG (+)
 
 <!--/html_preserve-->
 
-NOTE: `308 STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S.
-SAPROPHYTICUS`
+NOTE: Positive COAG(-) test results are labeled “Presumptively not *S.saprophyticus*”. 
 
-Interpretation levels: - “P” - “S” - “R” - “I” - “None”
+`308 "STAPHYLOCOCCUS, COAGULASE NEGATIVE" "None"`
 
-NOTE: All the MRSA screens (and a few other `itemid`s) have null values.
+`308 "STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS" "R"`
 
-`222577 16839 168517 "2102-09-06 00:00:00" "2102-09-06 09:49:00" 70091
-"MRSA SCREEN" 80023 "STAPH AUREUS COAG +" 1 90016 "OXACILLIN" "R"`
+NOTE: I think most of the NULL interpretations come from MRSA screens.
 
-``` sql
-with cpos as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%+%'
-),
-
-cneg as (
-  select * from microbiologyevents 
-  where interpretation is not null 
-    and org_name ilike '%STAPH%NEG%'
-)
-
-select distinct on (dxm.subject_id) dxm.* from microbiologyevents dxm
-right join cneg n on n.subject_id = dxm.subject_id
-right join cpos p on n.subject_id = dxm.subject_id
-```
+`"MRSA SCREEN" 80023 "STAPH AUREUS COAG +" "OXACILLIN" "R"`
