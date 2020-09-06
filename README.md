@@ -1,8 +1,6 @@
 EDA-III
 ================
 
-# Introduction
-
 S aureus and S intermedius are coagulase positive. All other
 staphylococci are coagulase negative (ncbi.nlm.nih.gov/books/NBK8448).
 
