@@ -95,7 +95,8 @@ kable(staphids)
 ```{sql}
 -- Confirmed positive and negative tests
 drop materialized view if exists study_population cascade;
-create materialized view study_population
+create materialized view study_population as 
+select
 	pt.subject_id, 
 	mb.hadm_id, 
 	pt.expire_flag, 

@@ -1,0 +1,4 @@
+"ERROR:  relation "cohort" does not exist
+LINE 9:  from cohort cht 
+              ^
+"
