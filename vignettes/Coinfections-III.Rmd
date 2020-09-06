@@ -7,19 +7,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-library(StaphAureus)
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
-
-```{r setup, eval=F}
-library(StaphAureus)
-vignette('EDA-III', package='StaphAureus')
-```
-
 ## References
 ### Staph/flu 
 https://doi.org/10.1128/mBio.02068-16
@@ -29,6 +16,24 @@ https://doi.org/10.1016/j.tim.2019.02.006
 https://doi.org/10.1164/rccm.202004-1322OC
 ### Staph/pseudomonas 
 https://doi.org/10.1073/pnas.0606756104
+
+```{r, include = FALSE}
+library(StaphAureus)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  error = FALSE,
+  eval = FALSE,
+  echo = TRUE,
+  comment = "#>",
+  fig.align='center'
+)
+```
+
+```{r setup, eval=F}
+library(StaphAureus)
+vignette('EDA-III', package='StaphAureus')
+```
 
 ```{sql, eval=F}
 select
