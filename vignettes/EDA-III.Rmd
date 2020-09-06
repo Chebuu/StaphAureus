@@ -106,22 +106,16 @@ group by
   pt.expire_flag
 ```
 
-Interpretation levels:
+**Interpretation levels**:            
+`"None"` Negative test result (NULL value)           
+`"R"` Positive test result (resistant)            
+`"S"` Positive test result (susceptible)            
+`"I"` Positive test result (intermediate)           
+`"P"` Positive test result (S/R not tested)           
 
-`"None"`
-  - Negative test result (NULL value)
-`"R"`
-  - Positive test result (resistant)
-`"S"`
-  - Positive test result (susceptible)
-`"I"`
-  - Positive test result (intermediate)
-`"P"`
-  - Positive test result (S/R not tested)
+#### Negative Control
 
-#### Negative Control 
-
-All NULL `population` test interpretation values.
+All NULL `study_population` test interpretation values.
 
 ```{sql}
 -- Confirmed negative subset
@@ -130,9 +124,9 @@ create materialized view control as
 select * from study_population where interpretation is NULL
 ```
 
-#### Positive Cohort COAG(+) *S. aureus*
+#### Positive COAG(+) *S. aureus*
 
-All non-NULL `population` test interpretation values.
+All non-NULL `study_population` test interpretation values.
 
 ```{sql}
 -- Confirmed positive subset
@@ -172,7 +166,7 @@ data(cohort)
 )
 ```
 
-```{r cohort_mrt, echo=T, eval=T, fig.width=5}
+```{r cohort_mort, echo=T, eval=T, fig.width=5}
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%

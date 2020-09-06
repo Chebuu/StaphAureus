@@ -1,28 +1,221 @@
 EDA-III
 ================
 
+# Introduction
+
+S aureus and S intermedius are coagulase positive. All other
+staphylococci are coagulase negative (ncbi.nlm.nih.gov/books/NBK8448).
+
+[Wiki COAG(+)](https://en.wikipedia.org/wiki/Coagulase): Staphylococcus
+aureus subsp. anaerobius, S. aureus subsp. aureus, S. delphini, S.
+hyicus, S. intermedius, S. lutrae, and Staphylococcus schleiferi subsp.
+coagulans.
+
+[Wiki COAG(-)](https://en.wikipedia.org/wiki/Coagulase): S.
+saprophyticus, S.cohnii subsp. cohnii, S. cohnii subsp. urealyticum, S.
+captitus subsp. captitus, S. warneri, S.hominis, S.epidermidis, S.
+caprae, and S.lugdunensis
+
 ``` r
 devtools::install_github('chebuu/StaphAureus')
-
 library(StaphAureus)
-
-## Imports:
-# library(gt)
-# library(grid)
-# library(dplyr)
-# library(ggplot2)
-# library(cowplot)
-# library(gridExtra)
-# library(kableExtra)
 ```
 
 ### Study Population
 
 ``` sql
--- Confirmed positive and negative samples
-drop materialized view if exists populataion cascade;
-create materialized view population as
-select 
+drop materialized view if exists orgids cascade;
+create materialized view orgids as
+select distinct on (org_itemid), org_name, org_itemid
+from microbiologyevents 
+where org_name not ilike '%staph%'
+```
+
+``` sql
+drop materialized view if exists staphids cascade;
+create materialized view staphids as
+select distinct on (org_itemid), org_name, org_itemid
+from microbiologyevents 
+where org_name ilike '%staph%'
+```
+
+<table>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+org\_name
+
+</th>
+
+<th style="text-align:right;">
+
+org\_itemid
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+POSITIVE FOR METHICILLIN RESISTANT STAPH AUREUS
+
+</td>
+
+<td style="text-align:right;">
+
+80293
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPH AUREUS COAG +
+
+</td>
+
+<td style="text-align:right;">
+
+80023
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS EPIDERMIDIS
+
+</td>
+
+<td style="text-align:right;">
+
+80024
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS HOMINIS
+
+</td>
+
+<td style="text-align:right;">
+
+NA
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS LUGDUNENSIS
+
+</td>
+
+<td style="text-align:right;">
+
+80162
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS SAPROPHYTICUS, PRESUMPTIVE IDENTIFICATION
+
+</td>
+
+<td style="text-align:right;">
+
+80255
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS SPECIES
+
+</td>
+
+<td style="text-align:right;">
+
+80138
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS, COAGULASE NEGATIVE
+
+</td>
+
+<td style="text-align:right;">
+
+80155
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS
+
+</td>
+
+<td style="text-align:right;">
+
+80262
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` sql
+-- Confirmed positive and negative tests
+drop materialized view if exists study_population cascade;
+create materialized view study_population as 
+select
     pt.subject_id, 
     mb.hadm_id, 
     pt.expire_flag, 
@@ -32,9 +225,7 @@ select
 from microbiologyevents mb
 left join patients pt 
   on mb.subject_id = pt.subject_id
-  and mb.org_name ilike any (
-    array [ '%STAPH%+%', '%STAPH%NEG%']
-  )
+  and mb.org_name ilike '%STAPH%AUREUS%'
 group by 
   pt.subject_id, 
   mb.hadm_id, 
@@ -44,38 +235,33 @@ group by
   pt.expire_flag
 ```
 
-Interpretation levels: 
+**Interpretation levels**:  
+`"None"` Negative test result (NULL value)  
+`"R"` Positive test result (resistant)  
+`"S"` Positive test result (susceptible)  
+`"I"` Positive test result (intermediate)  
+`"P"` Positive test result (S/R not tested)
 
-`"R"`    - Positive test result (resistant) 
+#### Negative Control
 
-`"S"`    - Positive test result (susceptible) 
-
-`"I"`    - Positive test result (intermediate) 
-
-`"P"`    - Positive test result (S/R not tested) 
-
-`"None"` - Negative test result (NULL value) 
-
-### Negative Control
-
-All NULL `population` test interpretation values.
+All NULL `study_population` test interpretation values.
 
 ``` sql
 -- Confirmed negative subset
 drop materialized view if exists control cascade;
 create materialized view control as
-select * from population where interpretation is NULL
+select * from study_population where interpretation is NULL
 ```
 
-### Positive Cohort COAG(+)/COAG(-)
+#### Positive COAG(+) *S. aureus*
 
-All non-NULL `population` test interpretation values.
+All non-NULL `study_population` test interpretation values.
 
 ``` sql
 -- Confirmed positive subset
 drop materialized view if exists cohort cascade;
 create materialized view cohort as
-select * from population where interpretation is not NULL
+select * from study_population where interpretation is not NULL
 ```
 
 ``` r
@@ -112,7 +298,6 @@ data(cohort)
 <img src="./EDA-III_files/figure-gfm/cohort_iso-1.png" style="display: block; margin: auto;" />
 
 ``` r
-
 (
   cohort.hist.mortality <- {
     cohort.mort.table <<- cohort %>%
@@ -141,7 +326,7 @@ data(cohort)
 )
 ```
 
-<img src="./EDA-III_files/figure-gfm/cohort_mrt-1.png" style="display: block; margin: auto;" />
+<img src="./EDA-III_files/figure-gfm/cohort_mort-1.png" style="display: block; margin: auto;" />
 
 ``` r
 cohort.iso.table -> cohort.table
@@ -159,7 +344,7 @@ gt(.displayP %>% head(6)) %>%
 
 <!--html_preserve-->
 
-<div id="cbetwlwkzr" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="aexyxridcf" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -384,7 +569,7 @@ gt(.displayN %>% head(6)) %>%
 
 <!--html_preserve-->
 
-<div id="bnzbxxrqin" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="legsrhmbiq" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -593,13 +778,3 @@ Subsample of cohort (confirmed positive)
 </div>
 
 <!--/html_preserve-->
-
-NOTE: Positive COAG(-) test results are labeled “Presumptively not *S.saprophyticus*”. 
-
-`308 "STAPHYLOCOCCUS, COAGULASE NEGATIVE" "None"`
-
-`308 "STAPHYLOCOCCUS, COAGULASE NEGATIVE, PRESUMPTIVELY NOT S. SAPROPHYTICUS" "R"`
-
-NOTE: I think most of the NULL interpretations come from MRSA screens.
-
-`"MRSA SCREEN" 80023 "STAPH AUREUS COAG +" "OXACILLIN" "R"`
